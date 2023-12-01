@@ -1,0 +1,33 @@
+name: Test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ windows-latest ]
+        platform: [ x64 ]
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      shell: pwsh
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install numpy
+
+    - name: Run solutions for AoC 2022
+      shell: pwsh
+      run: ${{ github.workspace }}\run_all.ps1 -year 2022 
+    
+    - name: Run solutions for AoC 2023
+      shell: pwsh
+      run: ${{ github.workspace }}\run_all.ps1 -year 2023
