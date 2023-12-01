@@ -6,8 +6,14 @@ if (Get-Command cl -errorAction SilentlyContinue) {
     Write-Host "MSVC compiler already available"
 }
 else {
-    $vsPath = &"${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationpath
-    Import-Module (Get-ChildItem $vsPath -Recurse -File -Filter Microsoft.VisualStudio.DevShell.dll).FullName
+    $vsPath = &"${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -prerelease -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationpath
+    $commonLocation = "$vsPath\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+    if (Test-Path $commonLocation) {
+        $dllPath = $commonLocation
+    } else {
+        $dllPath = (Get-ChildItem $vsPath -Recurse -File -Filter Microsoft.VisualStudio.DevShell.dll).FullName
+    }
+    Import-Module -Force $dllPath
     Enter-VsDevShell -VsInstallPath $vsPath -SkipAutomaticLocation -DevCmdArguments '-arch=x64'
 }
 
@@ -37,7 +43,7 @@ Get-Content EXPECTED.lst | ForEach-Object {
         }
     }
     if (Test-Path main.cpp -PathType Leaf) {
-        cl /nologo /O2 /EHsc main.cpp | Out-Null
+        cl /nologo /O2 /EHsc /std:c++latest main.cpp | Out-Null
         $part1, $part2 = (.\main.exe).Split(" ")
         if ($part1 -eq $exp_part1 -and $part2 -eq $exp_part2) {
             Write-Host "CPP OK: $dir"
