@@ -16,7 +16,7 @@ Get-Content EXPECTED.lst | ForEach-Object {
     $dir, $exp_part1, $exp_part2 = $_.Split(" ")
     
     Push-Location $dir
-    $part1, $part2 = (py main.py).Split(" ")
+    $part1, $part2 = (py -3.11 main.py).Split(" ")
     if ($part1 -eq $exp_part1 -and $part2 -eq $exp_part2) {
         Write-Host "Python OK: $dir"
     }
