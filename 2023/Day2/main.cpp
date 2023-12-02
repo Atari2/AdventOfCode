@@ -16,7 +16,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <unordered_map>
 #include <cstdio>
 
 constexpr bool SAMPLE_DATA = false;
@@ -36,13 +35,27 @@ std::vector<std::string> read_file(std::string_view filename) {
 }
 
 auto strip_view(std::string_view line) {
-    auto first = line.find_first_not_of(' ');
-    auto last = line.find_last_not_of(' ');
+    auto first = line.find_first_not_of(" \t\n\v\f\r"sv);
+    auto last = line.find_last_not_of(" \t\n\v\f\r"sv);
     return line.substr(first, last - first + 1);
 }
 
+std::pair<std::string_view, std::string_view> split_once(std::string_view orig, char delim, bool trim = true) {
+    auto delim_pos = orig.find(delim);
+    if (delim_pos == std::string_view::npos) {
+        return {trim ? strip_view(orig) : orig, {}};
+    }
+    auto first = orig.substr(0, delim_pos);
+    auto second = orig.substr(delim_pos + 1);
+    if (trim) {
+        first = strip_view(first);
+        second = strip_view(second);
+    }
+    return {first, second};
+}
+
 using CubeSets = std::vector<std::pair<size_t, std::string_view>>;
-using BagType = std::unordered_map<std::string_view, size_t>;
+using BagType = std::vector<std::pair<std::string_view, size_t>>;
 
 class Game {
     size_t m_id;
@@ -53,9 +66,9 @@ class Game {
     Game(size_t id, CubeSets&& cubesubsets, const BagType& bag) : m_id(id), m_cubesubsets(std::forward<CubeSets>(cubesubsets)), s_bag(bag) {}
     static Game fromLine(std::string_view line, const BagType& bag) {
         size_t id = 0;
-        int read_until = 0;
-        ::sscanf_s(line.data(), "Game %zu: %n", &id, &read_until); 
-        std::string_view cubesets = line.substr(read_until);
+        auto [gameno, cubesets] = split_once(line, ':');
+        auto [_, idstr] = split_once(gameno, ' ');
+        std::from_chars(idstr.data(), idstr.data() + idstr.size(), id);
         auto v = cubesets | v::split(";"sv) | v::transform([](auto&& cubeset) {
             return cubeset | v::split(","sv) | v::transform([](auto&& cube) {
                 auto cube_view = strip_view(std::string_view{cube});
@@ -69,7 +82,7 @@ class Game {
     }
     bool is_possible() const {
         for (const auto& [qty, color] : m_cubesubsets) {
-            auto it = s_bag.find(color);
+            auto it = r::find_if(s_bag, [&color](auto&& bagitem) { return bagitem.first == color; });
             if (it == s_bag.end() || it->second < qty) {
                 return false;
             }
@@ -79,8 +92,12 @@ class Game {
     size_t min_bag_power() const {
         BagType gbag{};
         for (const auto& [qty, color] : m_cubesubsets) {
-            auto& val = gbag[color];
-            val = std::max(val, qty);
+            auto it = r::find_if(gbag, [&color](auto&& bagitem) { return bagitem.first == color; });
+            if (it == gbag.end()) {
+                gbag.push_back({color, qty});
+            } else {
+                it->second = std::max(it->second, qty);
+            }
         }
         return r::fold_left(gbag | v::transform(&BagType::value_type::second), 1, std::multiplies<>{});
     }
