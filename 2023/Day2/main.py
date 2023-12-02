@@ -9,7 +9,7 @@ else:
 
 class Game:
     number: int
-    cubesubsets: list[list[tuple[int, str]]]
+    cubesubsets: list[tuple[int, str]]
     def __init__(self, line):
         number, cubesubsets = line.split(":", 1)
         self.number = int(number.split(' ', 1)[-1])
