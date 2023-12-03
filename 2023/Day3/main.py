@@ -12,9 +12,6 @@ else:
 def is_symbol(c: str) -> bool:
     return not (c.isdigit() or c == ".")
 
-def is_gear(c: str, adjacent_nums: list[SchemNum]) -> bool:
-    return c == "*" and len(adjacent_nums) == 2
-
 with open(filename, "r") as f:
     lines = f.read().splitlines()
 data = numpy.array([list(line) for line in lines])
@@ -30,80 +27,64 @@ adjacency_list = [
     (1, 1),
 ]
 
-
-class SchemNum:
-    value: int
-    pos_begin: tuple[int, int]
-    pos_end: tuple[int, int]
-    _h_pos: int
-
-    def __init__(
-        self, value: int, pos_begin: tuple[int, int], pos_end: tuple[int, int]
-    ):
-        self.value = value
-        self.pos_begin = pos_begin
-        self.pos_end = pos_end
-        self._h_pos = self.pos_begin[0] * data.shape[1] + self.pos_begin[1]
-
-    def is_adjacent(self, point: tuple[int, int]) -> bool:
-        xb, yb = self.pos_begin
-        xe, ye = self.pos_end
-        for y in range(yb, ye + 1):
-            if any(
-                (xb + dx, y + dy) == point
-                for dx, dy in adjacency_list
-            ):
-                return True
-        return False
-
-    def __hash__(self):
-        return self._h_pos
-
-    def __repr__(self):
-        return f"SchemNum({self.value}, {self.pos_begin} -> {self.pos_end})"
-
-
-def get_schem_nums(data: numpy.ndarray) -> list[SchemNum]:
-    schem_nums = []
+def get_schem_nums(
+    data: numpy.ndarray,
+) -> tuple[int, dict[tuple[int, int], list[int]]]:
+    schem_nums = 0
+    gears: dict[tuple[int, int], list[int]] = {}
     rows, cols = data.shape
     accum = ""
     start_pos = None
-    end_pos = None
+    is_to_include = False
+    gear_point = []
     for x in range(rows):
         for y in range(cols):
             if data[x, y].isdigit():
+                for dx, dy in adjacency_list:
+                    if (
+                        0 <= x + dx < rows
+                        and 0 <= y + dy < cols
+                        and is_symbol(data[x + dx, y + dy])  # type: ignore
+                    ):
+                        if data[x + dx, y + dy] == "*":
+                            gear_point.append((x + dx, y + dy))
+                        is_to_include = True
                 if accum == "":
                     start_pos = (x, y)
                 accum += data[x, y]
             else:
                 if accum != "" and start_pos is not None:
-                    end_pos = (x, y - 1)
-                    schem_nums.append(SchemNum(int(accum), start_pos, end_pos))
+                    if is_to_include:
+                        num = int(accum)
+                        schem_nums += num
+                        for point in gear_point:
+                            if point not in gears:
+                                gears[point] = []
+                            if num not in gears[point]:
+                                gears[point].append(num)
                     accum = ""
                     start_pos = None
-                    end_pos = None
+                    is_to_include = False
+                    gear_point.clear()
         if accum != "" and start_pos is not None:
-            end_pos = (x, cols - 1)
-            schem_nums.append(SchemNum(int(accum), start_pos, end_pos))
+            if is_to_include:
+                num = int(accum)
+                schem_nums += num
+                for point in gear_point:
+                    if point not in gears:
+                        gears[point] = []
+                    if num not in gears[point]:
+                        gears[point].append(num)
             accum = ""
             start_pos = None
-            end_pos = None
-    return schem_nums
+            is_to_include = False
+            gear_point.clear()
+    return schem_nums, gears
 
-
-schem_nums = get_schem_nums(data)
-
-totalp2 = 0
-numsp1 = set()
-for x, y in numpy.ndindex(data.shape):
-    if is_symbol(data[x, y]):
-        adjacent_nums = list(filter(lambda n: n.is_adjacent((x, y)), schem_nums))
-        for num in adjacent_nums:
-            numsp1.add(num)
-        if is_gear(data[x, y], adjacent_nums):
-            gear_ratio = functools.reduce(lambda a, b: a * b, (num.value for num in adjacent_nums))
-            totalp2 += gear_ratio
-
-totalp1 = sum(num.value for num in numsp1)
-
+totalp1, gears = get_schem_nums(data)
+totalp2 = sum(
+    adjacent_nums[0] * adjacent_nums[1]
+    for adjacent_nums in gears.values()
+    if len(adjacent_nums) == 2
+)
 print(f"{totalp1} {totalp2}")
