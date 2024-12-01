@@ -31,3 +31,7 @@ jobs:
     - name: Run solutions for AoC 2023
       shell: pwsh
       run: ${{ github.workspace }}\run_all.ps1 -year 2023
+
+    - name: Run solutions for AoC 2024
+      shell: pwsh
+      run: ${{ github.workspace }}\run_all.ps1 -year 2024
