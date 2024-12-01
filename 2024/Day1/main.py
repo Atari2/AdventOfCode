@@ -19,11 +19,10 @@ right.sort()
 totsum = 0
 for l, r in zip(left, right):
     totsum += abs(l - r)
-print(totsum)
 
 # part 2
 simscore = 0
 for n in left:
     simscore += (n * right.count(n))
 
-print(simscore)
+print(f'{totsum} {simscore}')
