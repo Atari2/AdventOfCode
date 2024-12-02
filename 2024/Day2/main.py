@@ -7,23 +7,15 @@ else:
     filename = "data.txt"
 
 class ReportType(IntEnum):
-    Unk = -1
     Desc = 0
     Asc = 1
 
 def check_valid_p1(report: list[int]) -> bool:
     latest_v = report[0]
-    report_type = ReportType.Unk
+    report_type = ReportType.Asc if report[1] > latest_v else ReportType.Desc
     for v in report[1:]:
         diff = abs(v - latest_v)
-        if report_type == ReportType.Unk:
-            if v > latest_v and 1 <= diff <= 3:
-                report_type = ReportType.Asc
-            elif v < latest_v and 1 <= diff <= 3:
-                report_type = ReportType.Desc
-            else: 
-                return False
-        elif report_type == ReportType.Asc:
+        if report_type == ReportType.Asc:
             if v < latest_v:
                 return False
             if not 1 <= diff <= 3:
