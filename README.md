@@ -13,7 +13,9 @@ The repo is organized in folders, one for each year, and each year folder contai
 The years are not complete, when I give up depends on how busy I am, how much I enjoy the challenges, how much I feel like writing code in my free time and how complex they are. I don't have a specific goal in mind, I just do it for fun until I don't feel like doing it anymore.
 
 ## Running the solutions
-### Requirements
+
+### Requirements (running the provided powershell script)
+> If you want to run the solutions manually you don't need any of this, instead you need the requirements listed [here](#requirements-running-the-solutions-manually)
 - Windows operating system (10 or above)
 - Python 3.11 or above
 - Visual Studio 2022 Preview with the C++ workload installed, a version new enough to support C++23 features (e.g. 17.13.0 Preview 1.0)
@@ -23,3 +25,12 @@ The years are not complete, when I give up depends on how busy I am, how much I 
 - Clone the repository
 - Open a Powershell terminal
 - Run `.\run_all.ps1 -year <year>` to run all the solutions for a specific year, if omitted the script will run the solutions for the current year, if the year is not present in the repository the script will exit with an error, 2021 is not supported because it doesn't follow the same structure as the other years as mentioned above.
+
+### Requirements (running the solutions manually)
+- Python 3.11 or above (for the python solutions)
+- A C compiler that supports C99 (for the C solutions)
+- A C++ compiler + standard library that support most C++23 features (specifically, [__cpp_lib_ranges](https://en.cppreference.com/w/cpp/feature_test#cpp_lib_ranges) needs to be `202207L`) (for the C++ solutions), for example:
+    - Visual Studio 2022 Preview (17.13.0 Preview 1.0 or above)
+    - GCC 14.1 or above
+    - Clang 19.1.0 or above
+

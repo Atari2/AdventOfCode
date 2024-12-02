@@ -1,12 +1,8 @@
 // compile with: cl /nologo /O2 /EHsc /std:c++latest main.cpp
 // most of this is just me playing around with C++23 ranges and views
 #include <version>
-#ifndef _MSC_VER
-#error "This code requires an MSVC compiler"
-#else
-#if _MSC_VER < 1935 || !defined(_WIN64) || !_HAS_CXX23 || __cpp_lib_ranges < 202207L
-#error "This code is for x64 MSVC 19.35+ only and requires C++23 features"
-#endif
+#if __cpp_lib_ranges < 202207L
+#error "This code requires C++23 range features"
 #endif
 
 #include <algorithm>
