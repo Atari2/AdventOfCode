@@ -12,3 +12,17 @@ Set-Location $dir_name
 New-Item -Path . -Name "sample_data.txt" -ItemType "file"
 New-Item -Path . -Name "data.txt" -ItemType "file"
 New-Item -Path . -Name "main.py" -ItemType "file"
+
+$prelude = @"
+SAMPLE_DATA: bool = False
+if SAMPLE_DATA:
+    filename = "sample_data.txt"
+else:
+    filename = "data.txt"
+
+
+with open(filename, 'r') as f:
+    data = f.readlines()
+"@
+
+Set-Content -Path ".\main.py" -Value $prelude
