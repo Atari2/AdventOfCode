@@ -8,15 +8,11 @@ jobs:
     
     strategy:
       matrix:
-        os: [ windows-latest ]
+        os: [ windows-2022 ]
         platform: [ x64 ]
     
     steps:
     - uses: actions/checkout@v3
-
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
     
     - name: Install dependencies
       shell: pwsh
