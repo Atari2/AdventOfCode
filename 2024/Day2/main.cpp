@@ -36,20 +36,13 @@ bool check_valid_p1(r::range auto&& report) {
     auto report_type = (*++report.begin()) > latest_v ? ReportType::Asc : ReportType::Desc;
     for (const auto& v : report | v::drop(1)) {
         auto diff = std::abs(v - latest_v);
-        if (report_type == ReportType::Asc) {
-            if (v < latest_v) {
-                return false;
-            }
-            if (!(1 <= diff && diff <= 3)) {
-                return false;
-            }
-        } else if (report_type == ReportType::Desc) {
-            if (v > latest_v) {
-                return false;
-            }
-            if (!(1 <= diff && diff <= 3)) {
-                return false;
-            }
+        if (!(1 <= diff && diff <= 3)) {
+            return false;
+        }
+        if (report_type == ReportType::Asc && v < latest_v) {
+            return false;
+        } else if (report_type == ReportType::Desc && v > latest_v) {
+            return false;
         }
         latest_v = v;
     }

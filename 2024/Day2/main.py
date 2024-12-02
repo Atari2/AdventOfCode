@@ -15,16 +15,12 @@ def check_valid_p1(report: list[int]) -> bool:
     report_type = ReportType.Asc if report[1] > latest_v else ReportType.Desc
     for v in report[1:]:
         diff = abs(v - latest_v)
-        if report_type == ReportType.Asc:
-            if v < latest_v:
-                return False
-            if not 1 <= diff <= 3:
-                return False
-        elif report_type == ReportType.Desc:
-            if v > latest_v:
-                return False
-            if not 1 <= diff <= 3:
-                return False
+        if not 1 <= diff <= 3:
+            return False
+        if report_type == ReportType.Asc and v < latest_v:
+            return False
+        elif report_type == ReportType.Desc and v > latest_v:
+            return False
         latest_v = v
     return True
 
