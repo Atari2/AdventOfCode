@@ -75,12 +75,12 @@ int main() {
         }) | r::to<std::vector>();
     }) | r::to<std::vector>();
 
-    auto p1 = r::fold_left(reports, 0, [](const auto& acc, const auto& report) {
-        return acc + check_valid_p1(std::span{report});
+    auto p1 = r::count_if(reports, [](const auto& report) {
+        return check_valid_p1(std::span{report});
     });
 
-    auto p2 = r::fold_left(reports, 0, [](const auto& acc, const auto& report) {
-        return acc + check_valid_p2(std::span{report});
+    auto p2 = r::count_if(reports, [](const auto& report) {
+        return check_valid_p2(std::span{report});
     });
 
     std::println("{} {}", p1, p2);
