@@ -17,8 +17,8 @@ jobs:
     - name: Install dependencies
       shell: pwsh
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install numpy
+        py -m pip install --upgrade pip
+        py -m pip install numpy
 
     - name: Run solutions for AoC 2022
       shell: pwsh
