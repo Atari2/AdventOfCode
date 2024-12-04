@@ -7,7 +7,7 @@ else:
 
 
 with open(filename, 'r') as f:
-    data = [l.strip() for l in f.readlines()]
+    data = f.readlines()
 
 word_to_find = "XMAS"
 offsets = ((0, 1), (1, 0), (1, 1), (1, -1), (-1, 1), (-1, 0), (0, -1), (-1, -1))
@@ -38,7 +38,7 @@ def check_word(i, j) -> int:
 offsets_p2 = (((1, 1), (-1, -1)), ((-1, 1), (1, -1)))
 def check_word_p2(i, j) -> bool:
     if data[i][j] != 'A':
-        return 0
+        return False
     for (sxoff1, syoff1), (sxoff2, syoff2) in offsets_p2:
         if i + sxoff1 < 0 or j + syoff1 < 0:
             return False
