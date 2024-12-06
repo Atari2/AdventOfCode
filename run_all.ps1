@@ -57,13 +57,15 @@ Get-Content EXPECTED.lst | ForEach-Object {
     $dir, $exp_part1, $exp_part2 = $_.Split(" ")
     
     Push-Location $dir
-    $part1, $part2 = (py main.py).Split(" ")
-    if ($part1 -eq $exp_part1 -and $part2 -eq $exp_part2) {
-        Write-Host "Python OK: $dir"
-    }
-    else {
-        Write-Host "Python FAIL: $dir"
-        Write-Host "Expected: $exp_part1 $exp_part2 but got $part1 $part2"
+    if (Test-Path main.py -PathType Leaf) {
+        $part1, $part2 = (py main.py).Split(" ")
+        if ($part1 -eq $exp_part1 -and $part2 -eq $exp_part2) {
+            Write-Host "Python OK: $dir"
+        }
+        else {
+            Write-Host "Python FAIL: $dir"
+            Write-Host "Expected: $exp_part1 $exp_part2 but got $part1 $part2"
+        }
     }
     if (Test-Path main.c -PathType Leaf) {
         # only test the C version if it exists
