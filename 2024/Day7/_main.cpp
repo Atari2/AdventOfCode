@@ -9,7 +9,9 @@
 #include <unordered_map>
 #include <numeric>
 #include <print>
+#if __cpp_lib_generator	== 202207L
 #include <generator>
+#endif
 
 namespace r = std::ranges;
 namespace v = std::ranges::views;
@@ -30,6 +32,25 @@ std::vector<std::string> read_file(std::string_view filename) {
 enum class Part { One, Two };
 enum class Op { Add, Mul, Concat };
 
+template <>
+struct std::formatter<Op> : std::formatter<std::string_view> {
+
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) { return std::formatter<std::string_view>::parse(ctx); }
+
+    template <typename FormatContext>
+    auto format(Op op, FormatContext& ctx) const {
+        std::string_view name;
+        switch (op) {
+            case Op::Add: name = "+"; break;
+            case Op::Mul: name = "*"; break;
+            case Op::Concat: name = "||"; break;
+        }
+        return std::formatter<std::string_view>::format(name, ctx);
+    }
+};
+
+#if 0
 std::generator<std::vector<Op>> product(r::range auto&& v, size_t repeat, std::vector<Op> current = {}) {
     if (current.size() == repeat) {
         co_yield current;
@@ -43,6 +64,78 @@ std::generator<std::vector<Op>> product(r::range auto&& v, size_t repeat, std::v
         }
     }
 }
+#else
+// FIXME: this shit doesn't work correctly.
+template <r::range R>
+class ProductIterator {
+public:
+    using ValueType = std::vector<Op>;
+
+    ProductIterator(const R& elements, size_t repeat)
+        : elements{elements}, repeat{repeat}, indices(repeat, 0), current{generate_current()}, done{repeat == 0} {
+            advance();
+        }
+
+    ProductIterator& operator++() {
+        advance();
+        return *this;
+    }
+
+    const ValueType& operator*() const { return current.value(); }
+
+    const ValueType* operator->() const { return &current.value(); }
+
+    bool operator!=(std::default_sentinel_t) const { return !done; }
+
+private:
+    const R& elements;                    
+    size_t repeat;                         
+    std::vector<size_t> indices;           
+    std::optional<ValueType> current;     
+    bool done = false;                     
+
+    std::optional<ValueType> generate_current() {
+        if (done) return std::nullopt;
+        ValueType result;
+        result.reserve(indices.size());
+        for (size_t i : indices) {
+            result.push_back(elements[i]);
+        }
+        return result;
+    }
+
+    void advance() {
+        for (size_t i = repeat; i-- > 0;) {
+            if (++indices[i] < elements.size()) {
+                current = generate_current();
+                return;
+            }
+            indices[i] = 0;
+        }
+        done = true;
+        current.reset();
+    }
+};
+
+template <r::range R>
+class ProductRange {
+public:
+
+    ProductRange(const R& elements, size_t repeat)
+        : elements{elements}, repeat{repeat} {}
+
+    auto begin() const { return ProductIterator{elements, repeat}; }
+    std::default_sentinel_t end() const { return {}; }
+
+private:
+    const R& elements;
+    size_t repeat;
+};
+
+auto product(r::range auto&& elements, size_t repeat) {
+    return ProductRange{elements, repeat};
+}
+#endif
 
 uint64_t concatenate(uint64_t a, uint64_t b) {
     static constexpr const uint64_t powersOfTen[] = {
