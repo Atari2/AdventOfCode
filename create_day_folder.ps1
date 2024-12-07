@@ -18,7 +18,7 @@ if ($cpp) {
 }
 
 $prelude_py = @"
-SAMPLE_DATA: bool = False
+SAMPLE_DATA: bool = True
 if SAMPLE_DATA:
     filename = "sample_data.txt"
 else:
@@ -46,7 +46,7 @@ namespace r = std::ranges;
 namespace v = std::ranges::views;
 using namespace std::string_view_literals;
 
-constexpr bool SAMPLE_DATA = false;
+constexpr bool SAMPLE_DATA = true;
 
 std::vector<std::string> read_file(std::string_view filename) {
     std::ifstream file(filename.data());
