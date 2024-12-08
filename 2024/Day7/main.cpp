@@ -50,7 +50,7 @@ struct std::formatter<Op> : std::formatter<std::string_view> {
     }
 };
 
-#if 0
+#if __cpp_lib_generator	== 202207L
 std::generator<std::vector<Op>> product(r::range auto&& v, size_t repeat, std::vector<Op> current = {}) {
     if (current.size() == repeat) {
         co_yield current;
@@ -65,38 +65,17 @@ std::generator<std::vector<Op>> product(r::range auto&& v, size_t repeat, std::v
     }
 }
 #else
-// FIXME: this shit doesn't work correctly.
 template <r::range R>
 class ProductIterator {
-public:
-    using ValueType = std::vector<Op>;
-
-    ProductIterator(const R& elements, size_t repeat)
-        : elements{elements}, repeat{repeat}, indices(repeat, 0), current{generate_current()}, done{repeat == 0} {
-            advance();
-        }
-
-    ProductIterator& operator++() {
-        advance();
-        return *this;
-    }
-
-    const ValueType& operator*() const { return current.value(); }
-
-    const ValueType* operator->() const { return &current.value(); }
-
-    bool operator!=(std::default_sentinel_t) const { return !done; }
-
-private:
     const R& elements;                    
     size_t repeat;                         
     std::vector<size_t> indices;           
-    std::optional<ValueType> current;     
+    std::optional<std::vector<Op>> current;     
     bool done = false;                     
 
-    std::optional<ValueType> generate_current() {
+    std::optional<std::vector<Op>> generate_current() {
         if (done) return std::nullopt;
-        ValueType result;
+        std::vector<Op> result;
         result.reserve(indices.size());
         for (size_t i : indices) {
             result.push_back(elements[i]);
@@ -115,21 +94,30 @@ private:
         done = true;
         current.reset();
     }
+public:
+    ProductIterator(const R& elements, size_t repeat)
+        : elements{elements}, repeat{repeat}, indices(repeat, 0), current{generate_current()}, done{repeat == 0} {
+            if (!done) {
+                current = generate_current();
+            }
+        }
+    ProductIterator& operator++() {
+        advance();
+        return *this;
+    }
+    const std::vector<Op>& operator*() const { return current.value(); }
+    const std::vector<Op>* operator->() const { return &current.value(); }
+    bool operator!=(std::default_sentinel_t) const { return !done; }
 };
-
 template <r::range R>
 class ProductRange {
-public:
-
-    ProductRange(const R& elements, size_t repeat)
-        : elements{elements}, repeat{repeat} {}
-
-    auto begin() const { return ProductIterator{elements, repeat}; }
-    std::default_sentinel_t end() const { return {}; }
-
-private:
     const R& elements;
     size_t repeat;
+public:
+    ProductRange(const R& elements, size_t repeat)
+        : elements{elements}, repeat{repeat} {}
+    auto begin() const { return ProductIterator{elements, repeat}; }
+    std::default_sentinel_t end() const { return {}; }
 };
 
 auto product(r::range auto&& elements, size_t repeat) {
