@@ -4,88 +4,87 @@
 #include <ranges>
 #include <string>
 #include <string_view>
-#include <variant>
+#include <unordered_map>
 #include <vector>
 #include <cstdio>
 #include <numeric>
 #include <print>
-#if __cpp_lib_generator	== 202207L
-#include <generator>
-#endif
-
-
 namespace r = std::ranges;
 namespace v = std::ranges::views;
 using namespace std::string_view_literals;
-
-constexpr bool SAMPLE_DATA = false;
-
-std::string read_file(std::string_view filename) {
-    std::ifstream file(filename.data());
-    file.seekg(0, std::ios::end);
-    size_t size = file.tellg();
-    std::string contents{};
-    contents.reserve(size);
-    file.seekg(0, std::ios::beg);
-    contents.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    return contents;
+using stone = std::pair<uint64_t, uint64_t>;
+static constexpr const uint64_t powersOfTen[] = {
+    1, 10, 100, 1000, 10000, 100000, 1000000,
+    10000000, 100000000, 1000000000, 10000000000,
+    100000000000, 1000000000000, 10000000000000,
+    100000000000000, 1000000000000000, 10000000000000000,
+    100000000000000000, 1000000000000000000
+};
+uint64_t digits(uint64_t num) {
+    uint64_t digits = 0;
+    if (num == 0) { 
+        digits = 1; 
+    } else {
+        unsigned long index; 
+        #ifdef _MSC_VER
+        _BitScanReverse64(&index, num); 
+        #else
+        index = 63 - __builtin_clzll(num);
+        #endif
+        digits = 1 + index * 30103 / 100000;
+        if (num >= powersOfTen[digits]) { ++digits; }
+    }
+    return digits;
 }
 
-struct Stone {
-    std::string value;
-    size_t occurrences;
-
-    Stone(std::string value, size_t occurrences = 1) {
-        value.erase(value.begin(), std::find_if(value.begin(), value.end(), [](char c) { return c != '0'; }));
-        if (value.size() != 0) this->value = std::move(value);
-        else this->value = "0";
-        this->occurrences = occurrences;
-    }
-
-#if __cpp_lib_generator	== 202207L
-    std::generator<Stone> blink() const {
-        if (value == "0") {
-            co_yield Stone("1", occurrences);
-        } else if (size_t len = value.size(); len % 2 == 0) {
-            co_yield Stone(value.substr(0, len / 2), occurrences);
-            co_yield Stone(value.substr(len / 2), occurrences);
-        } else {
-            co_yield Stone(std::to_string(std::stoull(value) * 2024), occurrences);
-        }
-    }
-#else
-    std::vector<Stone> blink() const {
-        if (value == "0") {
-            return {Stone("1", occurrences)};
-        } else if (size_t len = value.size(); len % 2 == 0) {
-            return {Stone(value.substr(0, len / 2), occurrences), Stone(value.substr(len / 2), occurrences)};
-        } else {
-            return {Stone(std::to_string(std::stoull(value) * 2024), occurrences)};
-        }
-    }
-#endif
-};
+std::pair<uint64_t, uint64_t> split_number(uint64_t number, uint64_t digits) {
+    const uint64_t divisor = powersOfTen[digits / 2];
+    const uint64_t rightPart = number % divisor;
+    const uint64_t leftPart = number / divisor;
+    return {leftPart, rightPart};
+}
 
 int main() {
-    auto data = read_file(SAMPLE_DATA ? "sample_data.txt"sv : "data.txt"sv);
-    auto stones = data | v::split(' ') | v::transform([](auto&& line) { return Stone{std::string(line.begin(), line.end())}; }) | r::to<std::vector>();
-    size_t part1 = 0;
+    auto stones = "510613 358 84 40702 4373582 2 0 1584"sv | v::split(' ') | v::transform([](auto&& range) { 
+        uint64_t value;
+        std::from_chars(range.data(), range.data() + range.size(), value);
+        return std::make_pair(value, uint64_t{1}); 
+    }) | r::to<std::unordered_map>();
+    uint64_t part1 = 0;
     for (size_t i = 0; i < 75; ++i) {
         if (i == 25) {
-            part1 = r::fold_left(stones, 0, [](size_t acc, const auto& s) { return acc + s.occurrences; });
+            part1 = r::fold_left(stones, 0, [](uint64_t acc, const auto& s) { return acc + s.second; });
         }
-        std::vector<Stone> new_stones{};
-        for (const auto& stone : stones) {
-            for (auto&& new_stone : stone.blink()) {
-                if (auto it = r::find_if(new_stones, [&new_stone](const auto& s) { return s.value == new_stone.value; }); it != new_stones.end()) {
-                    it->occurrences += new_stone.occurrences;
+        std::unordered_map<uint64_t, uint64_t> new_stones{};
+        for (auto&& [value, occurrences] : stones) {
+            if (value == 0) {
+                if (auto it = new_stones.find(1); it != new_stones.end()) {
+                    it->second += occurrences;
                 } else {
-                    new_stones.push_back(new_stone);
+                    new_stones.emplace(1, occurrences);
+                }
+            } else if (uint64_t len = digits(value); len % 2 == 0) {
+                auto [left, right] = split_number(value, len);
+                if (auto it = new_stones.find(left); it != new_stones.end()) {
+                    it->second += occurrences;
+                } else {
+                    new_stones.emplace(left, occurrences);
+                }
+                if (auto it = new_stones.find(right); it != new_stones.end()) {
+                    it->second += occurrences;
+                } else {
+                    new_stones.emplace(right, occurrences);
+                }
+            } else {
+                if (auto it = new_stones.find(value * 2024); it != new_stones.end()) {
+                    it->second += occurrences;
+                } else {
+                    new_stones.emplace(value * 2024, occurrences);
                 }
             }
         }
         stones = std::move(new_stones);
     }
-    size_t part2 = r::fold_left(stones, 0, [](size_t acc, const auto& s) { return acc + s.occurrences; });
+    uint64_t part2 = r::fold_left(stones, 0, [](size_t acc, const auto& s) { return acc + s.second; });
     std::println("{} {}", part1, part2);
 }
