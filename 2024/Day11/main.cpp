@@ -42,6 +42,7 @@ struct Stone {
         this->occurrences = occurrences;
     }
 
+#if __cpp_lib_generator	== 202207L
     std::generator<Stone> blink() const {
         if (value == "0") {
             co_yield Stone("1", occurrences);
@@ -52,6 +53,17 @@ struct Stone {
             co_yield Stone(std::to_string(std::stoull(value) * 2024), occurrences);
         }
     }
+#else
+    std::vector<Stone> blink() const {
+        if (value == "0") {
+            return {Stone("1", occurrences)};
+        } else if (size_t len = value.size(); len % 2 == 0) {
+            return {Stone(value.substr(0, len / 2), occurrences), Stone(value.substr(len / 2), occurrences)};
+        } else {
+            return {Stone(std::to_string(std::stoull(value) * 2024), occurrences)};
+        }
+    }
+#endif
 };
 
 int main() {
