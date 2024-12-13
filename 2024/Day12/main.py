@@ -22,21 +22,26 @@ class VertexAngle(enum.IntEnum):
 
 
 class Vertex:
-    point: tuple[int, int]
-    angle: VertexAngle
-    neighbors: list[Vertex]
+    original_point: tuple[int, int]
+    point: tuple[float, float]
     _count: int | None
 
     def __init__(self, point: tuple[int, int], angle: VertexAngle):
-        self.point = point
-        self.angle = angle
-        self.neighbors = []
-    
-    @cached_property
-    def count(self) -> int:
-        nlen = len(self.neighbors) + 1
+        self.original_point = point
+        match angle:
+            case VertexAngle.TL:
+                self.point = (point[0] - 0.5, point[1] - 0.5)
+            case VertexAngle.TR:
+                self.point = (point[0] - 0.5, point[1] + 0.5)
+            case VertexAngle.BL:
+                self.point = (point[0] + 0.5, point[1] - 0.5)
+            case VertexAngle.BR:
+                self.point = (point[0] + 0.5, point[1] + 0.5)
+
+    def count(self, neighbors: list[Vertex]) -> int:
+        nlen = len(neighbors) + 1
         if nlen == 2:
-            diff = np.subtract(self.point, self.neighbors[0].point)
+            diff = np.subtract(self.original_point, neighbors[0].original_point)
             if np.all(diff != 0):
                 return 2
             else:
@@ -45,29 +50,11 @@ class Vertex:
             return 1
         return 0
     
+    def __hash__(self):
+        return hash(self.point)
+    
     def __eq__(self, other: Vertex):
-        diff = tuple(np.subtract(self.point, other.point))
-        match diff:
-            case (0, 0):
-                return self.angle == other.angle
-            case (0, 1):
-                return (self.angle == VertexAngle.BL and other.angle == VertexAngle.BR) or (self.angle == VertexAngle.TL and other.angle == VertexAngle.TR)
-            case (0, -1):
-                return (self.angle == VertexAngle.BR and other.angle == VertexAngle.BL) or (self.angle == VertexAngle.TR and other.angle == VertexAngle.TL)
-            case (1, 0):
-                return (self.angle == VertexAngle.TR and other.angle == VertexAngle.BR) or (self.angle == VertexAngle.TL and other.angle == VertexAngle.BL)
-            case (-1, 0):
-                return (self.angle == VertexAngle.BL and other.angle == VertexAngle.TL) or (self.angle == VertexAngle.BR and other.angle == VertexAngle.TR)
-            case (1, 1):
-                return self.angle == VertexAngle.TL and other.angle == VertexAngle.BR
-            case (-1, -1):
-                return self.angle == VertexAngle.BR and other.angle == VertexAngle.TL
-            case (1, -1):
-                return self.angle == VertexAngle.TR and other.angle == VertexAngle.BL
-            case (-1, 1):
-                return self.angle == VertexAngle.BL and other.angle == VertexAngle.TR
-            case _:
-                return False
+        return self.point == other.point
 
 
 class FencedArea:
@@ -84,7 +71,7 @@ class FencedArea:
     def sides(self):
         if len(self.indices) == 1 or len(self.indices) == 2:
             return 4
-        vertices: list[Vertex] = []
+        vertices: dict[Vertex, list[Vertex]] = {}
         for index in self.indices:
             for v in (
                 Vertex(index, VertexAngle.TL),
@@ -92,12 +79,11 @@ class FencedArea:
                 Vertex(index, VertexAngle.BL),
                 Vertex(index, VertexAngle.BR)
             ):
-                try:
-                    idx = vertices.index(v)
-                    vertices[idx].neighbors.append(v)
-                except ValueError:
-                    vertices.append(v)
-        sides = sum((vertex.count for vertex in vertices))
+                if (e := vertices.get(v)) is not None:
+                    e.append(v)
+                else:
+                    vertices[v] = []
+        sides = sum((vertex.count(neighbors) for vertex, neighbors in vertices.items()))
         return sides
 
     def perimeter(self):        
