@@ -1,9 +1,7 @@
 from __future__ import annotations
 import numpy as np
-import itertools
-from typing import Iterator
-from operator import itemgetter
 import enum
+from functools import cached_property
 SAMPLE_DATA: bool = False
 if SAMPLE_DATA:
     filename = "sample_data.txt"
@@ -16,47 +14,61 @@ with open(filename, 'r') as f:
 areas = np.unique(data)
 
 offsets = ((0, 1), (0, -1), (1, 0), (-1, 0))
+class VertexAngle(enum.IntEnum):
+    TL = 0
+    TR = 1
+    BL = 2
+    BR = 3
 
-class SegmentType(enum.IntEnum):
-    HORIZONTAL = 0
-    VERTICAL = 1
 
-class Segment:
-    start: tuple[int, int]
-    end: tuple[int, int]
+class Vertex:
+    point: tuple[int, int]
+    angle: VertexAngle
+    neighbors: list[Vertex]
+    _count: int | None
 
-    def __init__(self, start: int, end: int, segtype: SegmentType, index: int):
-        self.start = (start, index) if segtype == SegmentType.VERTICAL else (index, start)
-        self.end = (end, index) if segtype == SegmentType.VERTICAL else (index, end)
-
-    def __repr__(self):
-        return f'{self.start}-{self.end}'
+    def __init__(self, point: tuple[int, int], angle: VertexAngle):
+        self.point = point
+        self.angle = angle
+        self.neighbors = []
     
-    def length(self):
-        x1, y1 = self.start
-        x2, y2 = self.end
-        return (abs(x2 - x1) if y1 == y2 else abs(y2 - y1)) + 1
+    @cached_property
+    def count(self) -> int:
+        nlen = len(self.neighbors) + 1
+        if nlen == 2:
+            diff = np.subtract(self.point, self.neighbors[0].point)
+            if np.all(diff != 0):
+                return 2
+            else:
+                return 0
+        if nlen == 1 or nlen == 3:
+            return 1
+        return 0
+    
+    def __eq__(self, other: Vertex):
+        diff = tuple(np.subtract(self.point, other.point))
+        match diff:
+            case (0, 0):
+                return self.angle == other.angle
+            case (0, 1):
+                return (self.angle == VertexAngle.BL and other.angle == VertexAngle.BR) or (self.angle == VertexAngle.TL and other.angle == VertexAngle.TR)
+            case (0, -1):
+                return (self.angle == VertexAngle.BR and other.angle == VertexAngle.BL) or (self.angle == VertexAngle.TR and other.angle == VertexAngle.TL)
+            case (1, 0):
+                return (self.angle == VertexAngle.TR and other.angle == VertexAngle.BR) or (self.angle == VertexAngle.TL and other.angle == VertexAngle.BL)
+            case (-1, 0):
+                return (self.angle == VertexAngle.BL and other.angle == VertexAngle.TL) or (self.angle == VertexAngle.BR and other.angle == VertexAngle.TR)
+            case (1, 1):
+                return self.angle == VertexAngle.TL and other.angle == VertexAngle.BR
+            case (-1, -1):
+                return self.angle == VertexAngle.BR and other.angle == VertexAngle.TL
+            case (1, -1):
+                return self.angle == VertexAngle.TR and other.angle == VertexAngle.BL
+            case (-1, 1):
+                return self.angle == VertexAngle.BL and other.angle == VertexAngle.TR
+            case _:
+                return False
 
-    @staticmethod
-    def from_indices(indices: Iterator[int], segtype: SegmentType, rc: int) -> list[Segment]:
-        sorted_indices = sorted(list(indices))
-        indices = iter(sorted_indices)
-        last_index = next(indices)
-        start = last_index
-        sides = []
-        for index in indices:
-            if index != last_index + 1:
-                sides.append(Segment(start, last_index, segtype, rc))
-                start = index
-            last_index = index
-        sides.append(Segment(start, last_index, segtype, rc))
-        return sides
-
-class Direction(enum.IntEnum):
-    UP = 0
-    DOWN = 1
-    LEFT = 2
-    RIGHT = 3
 
 class FencedArea:
     indices: list[tuple[int, int]]
@@ -64,26 +76,28 @@ class FencedArea:
     def __init__(self, indices: list[tuple[int, int]]):
         self.indices = indices
 
-    def __repr__(self):
-        return f'{self.indices}'
-
     def extend(self, indices: list[tuple[int, int]]):
         for idx in indices:
             if idx not in self.indices:
                 self.indices.append(idx)
 
     def sides(self):
-        # handle trivial cases first
         if len(self.indices) == 1 or len(self.indices) == 2:
             return 4
-        sides = 0
-        verticals = [
-            Segment.from_indices(map(itemgetter(0), group), SegmentType.VERTICAL, col) for col, group in itertools.groupby(sorted(self.indices, key=itemgetter(1)), key=itemgetter(1))
-        ]
-        horizontals = [
-            Segment.from_indices(map(itemgetter(1), group), SegmentType.HORIZONTAL, row) for row, group in itertools.groupby(sorted(self.indices, key=itemgetter(0)), key=itemgetter(0))
-        ]
-        # print(f'{len(verticals)} {len(horizontals)}')
+        vertices: list[Vertex] = []
+        for index in self.indices:
+            for v in (
+                Vertex(index, VertexAngle.TL),
+                Vertex(index, VertexAngle.TR),
+                Vertex(index, VertexAngle.BL),
+                Vertex(index, VertexAngle.BR)
+            ):
+                try:
+                    idx = vertices.index(v)
+                    vertices[idx].neighbors.append(v)
+                except ValueError:
+                    vertices.append(v)
+        sides = sum((vertex.count for vertex in vertices))
         return sides
 
     def perimeter(self):        
@@ -130,9 +144,6 @@ for v in areas:
                 compressed_fences.append(fence)
         compressed_at_least_once = len(compressed_fences) != len(fences)
         fences = compressed_fences
-    # for fence in fences:
-    #     print(f'A region of {chr(v)} has area {fence.area()} and perimeter {fence.perimeter()} and sides {fence.sides()}')
     part1 += sum((fence.area() * fence.perimeter() for fence in fences))
     part2 += sum((fence.area() * fence.sides() for fence in fences))
-part2 = 863366 # hard-code solution while I figure out the optimized sides calculation
 print(f'{part1} {part2}')
