@@ -45,6 +45,8 @@ def part1():
     return safety_factor
 
 def part2():
+    if SAMPLE_DATA:
+        return 0 # sample data is too small to find a christmas tree
     space = np.zeros((SPACE_HEIGHT, SPACE_WIDTH), dtype=np.uint8)
     robots = [Robot(line.strip()) for line in data]
     for r in robots:
