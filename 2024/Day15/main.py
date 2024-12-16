@@ -161,7 +161,7 @@ def part2():
                 # if one of the boxes can't move, revert the changes
                 wider_warehouse = saved_warehouse
                 return False
-        elif wider_warehouse[*(lbox + direction)] == ']':
+        elif wider_warehouse[*(lbox + direction)] == ']' and wider_warehouse[*(rbox + direction)] == '.':
             # a box with another box on top or bottom but shifted left
             # [].
             # .[] -> current box
@@ -176,7 +176,7 @@ def part2():
             wider_warehouse[*lbox] = '['
             wider_warehouse[*rbox] = ']'
             return True
-        elif wider_warehouse[*(rbox + direction)] == '[':
+        elif wider_warehouse[*(rbox + direction)] == '[' and wider_warehouse[*(lbox + direction)] == '.':
             # a box with another box on top or bottom but shifted right
             # .[]
             # []. -> current box
@@ -215,11 +215,7 @@ def part2():
                     robot += direction
                     wider_warehouse[*robot] = '@'
 
-    if SAMPLE_DATA:
-        print('\n'.join([''.join(row) for row in wider_warehouse]))
     for m in movements:
-        if SAMPLE_DATA:
-            print(m)
         match m:
             case '^':
                 move([-1, 0])
@@ -229,8 +225,6 @@ def part2():
                 move([0, -1])
             case '>':
                 move([0, 1])
-        if SAMPLE_DATA:
-            print('\n'.join([''.join(row) for row in wider_warehouse]))
     tot = 0
     for x, y in np.argwhere(wider_warehouse == '['):
         tot += (x * 100) + y
