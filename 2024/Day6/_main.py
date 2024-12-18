@@ -8,8 +8,7 @@ else:
 
 
 with open(filename, 'r') as f:
-    datap1 = np.array([list(l.strip()) for l in f.readlines()], dtype=str)
-    datap2 = np.copy(datap1)
+    data = np.array([list(l.strip()) for l in f.readlines()], dtype=str)
 
 direction_map = {
     '^': (-1, 0),
@@ -25,12 +24,12 @@ turn_map = {
 }
 
 def pos_in_bounds(new_pos) -> bool:
-    return new_pos[0] >= 0 and new_pos[0] < datap1.shape[0] and new_pos[1] >= 0 and new_pos[1] < datap1.shape[1]
+    return new_pos[0] >= 0 and new_pos[0] < data.shape[0] and new_pos[1] >= 0 and new_pos[1] < data.shape[1]
 
+starting_pos = tuple(np.argwhere(data == '^')[0])
 def part1(data):
-    current_pos = tuple(np.argwhere(data == '^')[0])
     current_dir = '^'
-
+    current_pos = tuple(starting_pos)
     while True:
         direction = direction_map[current_dir]
         data[*current_pos] = 'X'
@@ -47,9 +46,8 @@ def part1(data):
 
 # FIXME: brute-force solution, could be optimized, currently takes too long to make it run on CI.
 def part2(data):
-    starting_pos = tuple(np.argwhere(data == '^')[0])
     loops = 0
-    obstacles_possible_pos = np.argwhere(data == '.')
+    obstacles_possible_pos = np.argwhere(data == 'X')
     visited_stack = set()
     for obstacle_pos in obstacles_possible_pos:
         current_pos = tuple(starting_pos)
@@ -73,4 +71,4 @@ def part2(data):
         data[*obstacle_pos] = '.'
     return loops
 
-print(f'{part1(datap1)} {part2(datap2)}')
+print(f'{part1(data)} {part2(data)}')

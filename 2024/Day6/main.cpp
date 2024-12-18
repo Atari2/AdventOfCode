@@ -63,7 +63,7 @@ struct std::hash<std::pair<std::pair<int64_t, int64_t>, char>> {
     }
 };
 
-int64_t part1(std::pair<int64_t, int64_t> current_pos, std::vector<std::string> data) {
+int64_t part1(std::pair<int64_t, int64_t> current_pos, std::vector<std::string>& data) {
     auto current_dir = '^';
     while (true) {
         auto direction = map_direction(current_dir);
@@ -84,12 +84,12 @@ int64_t part1(std::pair<int64_t, int64_t> current_pos, std::vector<std::string> 
     });
 }
 
-int64_t part2(std::pair<int64_t, int64_t> starting_pos, std::vector<std::string> data) {
+int64_t part2(std::pair<int64_t, int64_t> starting_pos, std::vector<std::string>& data) {
     const auto obstacles_possible_pos = [&]() {
         std::vector<std::pair<int64_t, int64_t>> res;
         for (int64_t i = 0; i < data.size(); ++i) {
             for (int64_t j = 0; j < data[i].size(); ++j) {
-                if (data[i][j] == '.') {
+                if (data[i][j] == 'X') {
                     res.push_back(std::make_pair(i, j));
                 }
             }
@@ -119,7 +119,7 @@ int64_t part2(std::pair<int64_t, int64_t> starting_pos, std::vector<std::string>
                 current_dir = map_turn(current_dir);
             }
         }
-        data[obstacle_pos_x][obstacle_pos_y] = '.';
+        data[obstacle_pos_x][obstacle_pos_y] = 'X';
     }
     return loops;
 }
