@@ -12,7 +12,9 @@
 #include <cinttypes>
 #include <queue>
 #include <utility>
+#if __cpp_lib_generator	== 202207L
 #include <generator>
+#endif
 
 namespace r = std::ranges;
 namespace v = std::ranges::views;
@@ -81,6 +83,7 @@ struct matrix {
         return {-1, -1};
     }
 
+#if __cpp_lib_generator	== 202207L
     std::generator<point> find_all(auto c) const {
         for (int64_t x = 0; x < data.size(); x++) {
             for (int64_t y = 0; y < data[x].size(); y++) {
@@ -90,6 +93,19 @@ struct matrix {
             }
         }
     }
+#else
+    std::vector<point> find_all(auto c) const {
+        std::vector<point> result{};
+        for (int64_t x = 0; x < data.size(); x++) {
+            for (int64_t y = 0; y < data[x].size(); y++) {
+                if (data[x][y] == c) {
+                    result.emplace_back(x, y);
+                }
+            }
+        }
+        return result;
+    }
+#endif
 };
 
 struct box {
