@@ -1,4 +1,5 @@
-from functools import cache
+import numpy as np
+
 SAMPLE_DATA: bool = False
 if SAMPLE_DATA:
     filename = "sample_data.txt"
@@ -26,29 +27,20 @@ secrets: list[list[int]] = [
     save_nth(v, 2000) for v in data
 ]
 
-changes: list[list[str]] = [
-    [str((s[i + 1] % 10) - (s[i] % 10)) for i in range(len(s) - 1)] for s in secrets
+changes: list[list[int]] = [
+    [(s[i + 1] % 10) - (s[i] % 10) for i in range(len(s) - 1)] for s in secrets
 ]
 
-string_changes: list[dict[str, int]] = []
-for secret, change in zip(secrets, changes):
-    string_change = {}
+bananas_sold = np.zeros((20, 20, 20, 20), dtype=np.int16)
+already_set = np.zeros((20, 20, 20, 20), dtype=np.int16)
+for n, (secret, change) in enumerate(zip(secrets, changes)):
     for i in range(0, len(change) - 4):
-        seq = ''.join(change[i:i+4])
-        if seq not in string_change:
-            string_change[seq] = secret[i + 4] % 10
-    string_changes.append(string_change)
+        array_indexes = (change[i], change[i + 1], change[i + 2], change[i + 3])
+        if already_set[array_indexes] != n:
+            bananas_sold[array_indexes] += secret[i + 4] % 10
+            already_set[array_indexes] = n
 
-@cache
-def count_occurrences(seq: str) -> int:
-    return sum(map(lambda c: c.get(seq, 0), string_changes))
-
-current_max = 0
-
-for strc in string_changes:
-    for seq in strc.keys():
-        pr = count_occurrences(seq)
-        current_max = max(current_max, pr)
 
 part1 = sum(map(lambda v: v[-1], secrets))
-print(f'{part1} {current_max}')
+part2 = np.max(bananas_sold)
+print(f'{part1} {part2}')

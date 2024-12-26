@@ -45,9 +45,24 @@ std::vector<int64_t> save_nth(int64_t val, int64_t n) {
     return res;
 }
 
-static std::unordered_map<std::string, int64_t> count_cache{};
+static std::unordered_map<int64_t, int64_t> count_cache{};
 
-int64_t count_occurrences(const std::vector<std::unordered_map<std::string, int64_t>>& string_changes, const std::string& seq) {
+static constexpr std::hash<int64_t> g_hasher{};
+size_t range_hash(const std::span<int64_t>& sp) {
+    auto res = 0x345678L;
+    int64_t mult = 1000003L;
+
+    auto len = sp.size();
+    for (const auto& val : sp) {
+        res = (res ^ g_hasher(val)) * mult;
+        mult += 82520UL + len + len;
+        len -= 1;
+    }
+
+    return res;
+}
+
+int64_t count_occurrences(const std::vector<std::unordered_map<int64_t, int64_t>>& string_changes, int64_t seq) {
     if (auto it = count_cache.find(seq); it != count_cache.end()) {
         return it->second;
     }
@@ -74,22 +89,22 @@ int main() {
         return acc + secret.back();
     });
 
-    std::vector<std::vector<std::string>> changes{};
+    std::vector<std::vector<int64_t>> changes{};
     for (const auto& secret : secrets) {
-        std::vector<std::string> change{};
+        std::vector<int64_t> change{};
         for (size_t i = 0; i < secret.size() - 1; ++i) {
-            change.push_back(std::to_string((secret[i + 1] % 10) - (secret[i] % 10)));
+            change.push_back((secret[i + 1] % 10) - (secret[i] % 10));
         }
         changes.push_back(std::move(change));
     }
-    std::vector<std::unordered_map<std::string, int64_t>> string_changes{};
+    std::vector<std::unordered_map<int64_t, int64_t>> string_changes{};
     string_changes.reserve(changes.size());
     for (const auto& [secret, change] : v::zip(secrets, changes)) {
-        std::unordered_map<std::string, int64_t> string_change{};
+        std::unordered_map<int64_t, int64_t> string_change{};
         string_change.reserve(change.size());
         int64_t idx = 0;
         for (auto&& seq : change | v::slide(4) | v::transform([](auto&& val) {
-            return val | v::join | r::to<std::string>();
+            return range_hash(val);
         })) {
             string_change.try_emplace(seq, secret[idx + 4] % 10);
             idx += 1;
