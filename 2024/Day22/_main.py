@@ -26,30 +26,27 @@ secrets: list[list[int]] = [
     save_nth(v, 2000) for v in data
 ]
 
-changes: list[list[int]] = [
-    [(s[i + 1] % 10) - (s[i] % 10) for i in range(len(s) - 1)] for s in secrets
+changes: list[list[str]] = [
+    [str((s[i + 1] % 10) - (s[i] % 10)) for i in range(len(s) - 1)] for s in secrets
 ]
 
-string_changes = ["".join(map(str, c)) for c in changes]
+string_changes: list[dict[str, int]] = []
+for secret, change in zip(secrets, changes):
+    string_change = {}
+    for i in range(0, len(change) - 4):
+        seq = ''.join(change[i:i+4])
+        if seq not in string_change:
+            string_change[seq] = secret[i + 4] % 10
+    string_changes.append(string_change)
 
 @cache
 def count_occurrences(seq: str) -> int:
-    pricings = 0
-    for i, change in enumerate(string_changes):
-        idx = 0
-        while (idx := change.find(seq, idx)) != -1:
-            if change[idx - 1] == '-':
-                idx += 1
-                continue
-            pricings += secrets[i][idx + len(seq) - change[0:idx + len(seq)].count('-')] % 10
-            break
-    return pricings
+    return sum(map(lambda c: c.get(seq, 0), string_changes))
 
 current_max = 0
 
-for change in changes:
-    for i in range(0, len(change) - 4):
-        seq = ''.join(map(str, change[i:i+4]))
+for strc in string_changes:
+    for seq in strc.keys():
         pr = count_occurrences(seq)
         current_max = max(current_max, pr)
 

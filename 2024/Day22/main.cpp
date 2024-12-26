@@ -47,25 +47,18 @@ std::vector<int64_t> save_nth(int64_t val, int64_t n) {
 
 static std::unordered_map<std::string, int64_t> count_cache{};
 
-int64_t count_occurrences(const std::vector<std::vector<int64_t>>& secrets, const std::vector<std::string>& string_changes, const std::string& seq) {
+int64_t count_occurrences(const std::vector<std::unordered_map<std::string, int64_t>>& string_changes, const std::string& seq) {
     if (auto it = count_cache.find(seq); it != count_cache.end()) {
         return it->second;
     }
-    int64_t count = 0;
-    for (auto&& [i, change] : string_changes | v::enumerate) {
-        int64_t idx = 0;
-        while ((idx = change.find(seq, idx)) != std::string::npos) {
-            if (change[idx - 1] == '-') {
-                idx += 1;
-                continue;
-            }
-            std::string_view changeview{change};
-            count += secrets[i][idx + seq.size() - r::count(changeview.substr(0, idx + seq.size()), '-')] % 10;
-            break;
+    auto val = r::fold_left(string_changes | v::transform([&](const auto& string_change) {
+        if (auto it = string_change.find(seq); it != string_change.end()) {
+            return it->second;
         }
-    }
-    count_cache[seq] = count;
-    return count;
+        return int64_t{0};
+    }), 0, std::plus{});
+    count_cache[seq] = val;
+    return val;
 }
 
 int main() {
@@ -81,29 +74,34 @@ int main() {
         return acc + secret.back();
     });
 
-    std::vector<std::vector<int64_t>> changes{};
+    std::vector<std::vector<std::string>> changes{};
     for (const auto& secret : secrets) {
-        std::vector<int64_t> change{};
+        std::vector<std::string> change{};
         for (size_t i = 0; i < secret.size() - 1; ++i) {
-            change.push_back((secret[i + 1] % 10) - (secret[i] % 10));
+            change.push_back(std::to_string((secret[i + 1] % 10) - (secret[i] % 10)));
         }
         changes.push_back(std::move(change));
     }
-    auto string_changes = changes | v::transform([](const auto& change) {
-        return change | v::transform([](auto&& val) {
-            return std::to_string(val);
-        }) | v::join | r::to<std::string>();
-    }) | r::to<std::vector>();
+    std::vector<std::unordered_map<std::string, int64_t>> string_changes{};
+    string_changes.reserve(changes.size());
+    for (const auto& [secret, change] : v::zip(secrets, changes)) {
+        std::unordered_map<std::string, int64_t> string_change{};
+        string_change.reserve(change.size());
+        int64_t idx = 0;
+        for (auto&& seq : change | v::slide(4) | v::transform([](auto&& val) {
+            return val | v::join | r::to<std::string>();
+        })) {
+            string_change.try_emplace(seq, secret[idx + 4] % 10);
+            idx += 1;
+        }
+        string_changes.push_back(std::move(string_change));
+    }
 
     int64_t current_max = 0;
-    for (const auto& change : changes) {
-        std::span change_span{change};
-        for (size_t i = 0; i < change.size() - 4; ++i) {
-            auto seq = change_span.subspan(i, 4) | v::transform([](auto&& val) {
-                return std::to_string(val);
-            }) | v::join | r::to<std::string>();
-            auto pr = count_occurrences(secrets, string_changes, seq);
-            current_max = std::max(current_max, pr);
+    
+    for (const auto& strc : string_changes) {
+        for (const auto& seq : strc | v::keys) {
+            current_max = std::max(current_max, count_occurrences(string_changes, seq));
         }
     }
 
