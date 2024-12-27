@@ -45,35 +45,13 @@ std::vector<int64_t> save_nth(int64_t val, int64_t n) {
     return res;
 }
 
-static std::unordered_map<int64_t, int64_t> count_cache{};
+constexpr size_t array_size = 20 * 20 * 20 * 20;
 
-static constexpr std::hash<int64_t> g_hasher{};
-size_t range_hash(const std::span<int64_t>& sp) {
-    auto res = 0x345678L;
-    int64_t mult = 1000003L;
-
-    auto len = sp.size();
-    for (const auto& val : sp) {
-        res = (res ^ g_hasher(val)) * mult;
-        mult += 82520UL + len + len;
-        len -= 1;
-    }
-
-    return res;
+constexpr int64_t mi(int64_t v) {
+    return v < 0 ? std::abs(v) + 10 : v;
 }
-
-int64_t count_occurrences(const std::vector<std::unordered_map<int64_t, int64_t>>& string_changes, int64_t seq) {
-    if (auto it = count_cache.find(seq); it != count_cache.end()) {
-        return it->second;
-    }
-    auto val = r::fold_left(string_changes | v::transform([&](const auto& string_change) {
-        if (auto it = string_change.find(seq); it != string_change.end()) {
-            return it->second;
-        }
-        return int64_t{0};
-    }), 0, std::plus{});
-    count_cache[seq] = val;
-    return val;
+constexpr size_t fi(int64_t a, int64_t b, int64_t c, int64_t d) {
+    return (mi(a) * 20 * 20 * 20) + (mi(b) * 20 * 20) + (mi(c) * 20) + mi(d);
 }
 
 int main() {
@@ -89,36 +67,24 @@ int main() {
         return acc + secret.back();
     });
 
-    std::vector<std::vector<int64_t>> changes{};
-    for (const auto& secret : secrets) {
-        std::vector<int64_t> change{};
-        for (size_t i = 0; i < secret.size() - 1; ++i) {
-            change.push_back((secret[i + 1] % 10) - (secret[i] % 10));
-        }
-        changes.push_back(std::move(change));
-    }
-    std::vector<std::unordered_map<int64_t, int64_t>> string_changes{};
-    string_changes.reserve(changes.size());
-    for (const auto& [secret, change] : v::zip(secrets, changes)) {
-        std::unordered_map<int64_t, int64_t> string_change{};
-        string_change.reserve(change.size());
-        int64_t idx = 0;
-        for (auto&& seq : change | v::slide(4) | v::transform([](auto&& val) {
-            return range_hash(val);
-        })) {
-            string_change.try_emplace(seq, secret[idx + 4] % 10);
-            idx += 1;
-        }
-        string_changes.push_back(std::move(string_change));
-    }
+    auto changes = secrets | v::transform([](auto&& secret) {
+        return v::zip(secret, secret | v::drop(1)) | v::transform([](auto&& p) {
+            return (std::get<1>(p) % 10) - (std::get<0>(p) % 10);
+        }) | r::to<std::vector>();
+    });
 
-    int64_t current_max = 0;
-    
-    for (const auto& strc : string_changes) {
-        for (const auto& seq : strc | v::keys) {
-            current_max = std::max(current_max, count_occurrences(string_changes, seq));
+    std::array<int16_t, array_size> bananas_sold{};
+    std::array<int16_t, array_size> already_set{};
+    for (auto&& [n, p] : v::zip(secrets, changes) | v::enumerate) {
+        const auto& [secret, change] = p;
+        for (auto&& [i, window] : change | v::slide(4) | v::enumerate) {
+            auto idx = fi(window[0], window[1], window[2], window[3]);
+            if (already_set[idx] != n) {
+                bananas_sold[idx] += secret[i + 4] % 10;
+                already_set[idx] = n;
+            }
         }
     }
-
-    std::println("{} {}", part1, current_max);
+    auto part2 = r::max(bananas_sold);
+    std::println("{} {}", part1, part2);
 }
