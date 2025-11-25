@@ -1,7 +1,5 @@
 from __future__ import annotations
-from copy import deepcopy
 from enum import IntEnum
-import itertools
 
 SAMPLE_DATA: bool = False
 if SAMPLE_DATA:
