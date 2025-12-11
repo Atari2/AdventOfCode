@@ -18,7 +18,7 @@ jobs:
       shell: pwsh
       run: |
         py -m pip install --upgrade pip
-        py -m pip install numpy
+        py -m pip install numpy scipy
 
     - name: Run solutions for AoC 2022
       shell: pwsh
