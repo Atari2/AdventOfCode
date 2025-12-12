@@ -18,12 +18,12 @@ if (Get-Command py -ErrorAction SilentlyContinue) {
         Write-Host "Python version $version is not supported, please install Python 3.11 or above"
         exit 1
     }
-    py -c "import numpy" | Out-Null     # check for numpy
+    py -c "import numpy;import scipy" | Out-Null     # check for numpy and scipy
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "Numpy found"
+        Write-Host "Numpy and Scipy found"
     }
     else {
-        Write-Host "Numpy not found, please install numpy"
+        Write-Host "Numpy and/or Scipy not found, please install numpy and scipy for Python"
         exit 1
     }
     Write-Host "Python version $version found"
